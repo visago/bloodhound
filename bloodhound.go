@@ -82,7 +82,8 @@ func (sp *SniffingProxy) sniffResponse(resp *http.Response, reqID int64) error {
 }
 
 func (sp *SniffingProxy) writeRequestToFile(req *http.Request, reqID int64) {
-	filename := filepath.Join(cfg.BoneFolder, fmt.Sprintf("%d-request.txt", reqID))
+	dt := time.Now()
+	filename := filepath.Join(cfg.BoneFolder, fmt.Sprintf("%s-%06d-request.txt", dt.Format("20060102-150405"), reqID))
 
 	// Create a buffer to capture the request dump
 	var buf bytes.Buffer
@@ -112,12 +113,13 @@ func (sp *SniffingProxy) writeRequestToFile(req *http.Request, reqID int64) {
 
 	// Write to file
 	if err := os.WriteFile(filename, buf.Bytes(), 0644); err != nil {
-		log.Error().Int64("id", reqID).Msgf("ERROR writing request file %0d-request.txt : %v", reqID, err)
+		log.Error().Int64("id", reqID).Msgf("ERROR writing request file : %v", err)
 	}
 }
 
 func (sp *SniffingProxy) writeResponseToFile(resp *http.Response, reqID int64) {
-	filename := filepath.Join(cfg.BoneFolder, fmt.Sprintf("%d-response.txt", reqID))
+	dt := time.Now()
+	filename := filepath.Join(cfg.BoneFolder, fmt.Sprintf("%s-%06d-response.txt", dt.Format("20060102-150405"), reqID))
 
 	// Create a buffer to capture the response dump
 	var buf bytes.Buffer
@@ -146,7 +148,7 @@ func (sp *SniffingProxy) writeResponseToFile(resp *http.Response, reqID int64) {
 
 	// Write to file
 	if err := os.WriteFile(filename, buf.Bytes(), 0644); err != nil {
-		log.Error().Int64("id", reqID).Msgf("ERROR writing response file %0d-response.txt : %v", reqID, err)
+		log.Error().Int64("id", reqID).Msgf("ERROR writing response file : %v", err)
 	}
 }
 
