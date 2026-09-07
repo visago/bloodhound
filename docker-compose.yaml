@@ -1,0 +1,46 @@
+# Runs bloodhound with the CA and server certificate produced by `make certs`.
+#
+#   make certs
+#   docker compose up
+#   curl --cacert certs/ca.crt https://localhost:25663/get
+#
+# See README.md for how to install certs/ca.crt into your clients' trust stores.
+
+services:
+  bloodhound:
+    build: .
+    image: bloodhound:local
+    # The published visago/bloodhound:latest predates TLS support. Once a newer
+    # image is pushed you can drop the build above and use it directly:
+    #   image: visago/bloodhound:latest
+
+    # `make certs` writes the keys as mode 600 owned by the invoking user, which
+    # the image's own unprivileged `bloodhound` user cannot read. Running as the
+    # host user keeps the keys private and still readable. Override per host with
+    # BLOODHOUND_UID / BLOODHOUND_GID, e.g. in a .env file.
+    user: "${BLOODHOUND_UID:-1000}:${BLOODHOUND_GID:-1000}"
+
+    environment:
+      # 0.0.0.0 binds inside the container only; the ports mapping below decides
+      # what is actually reachable from outside.
+      ListenAddr: "0.0.0.0:25663"
+      TargetUrl: "${TargetUrl:-https://httpbin.org}"
+      BoneFolder: "/bones"
+      TlsCert: "/certs/bloodhound.crt"
+      TlsKey: "/certs/bloodhound.key"
+      # Uncomment to sniff a target whose certificate comes from a private CA:
+      # TargetCaCert: "/certs/ca.crt"
+      # TargetInsecure: "true"
+
+    ports:
+      # Loopback only - captured bones routinely contain cookies and tokens.
+      # Change to "25663:25663" to expose it on the network deliberately.
+      - "127.0.0.1:25663:25663"
+
+    volumes:
+      - ./certs:/certs:ro
+      - ./bones:/bones
+
+    # Deliberately no restart policy. bloodhound is an ad hoc debugging tool that
+    # writes cookies and tokens to ./bones - it should not come back by itself
+    # after a reboot. Add `restart: unless-stopped` if you want it long lived.
